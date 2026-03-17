@@ -21,3 +21,4 @@ cmake-build-*/
 
 # Component folders
 managed_components/
+dependencies.lock

@@ -12,6 +12,7 @@
 #include "WifiManager.h"
 #include "WebServerManager.h"
 #include "SunTimeManager.h"
+#include "MqttManager.h"
 
 // Приклад пінів, можна змінити за потребою
 // Гірлянда до курника - 10, 7, 6, 5 - Підключена насправді тільки одна
@@ -68,5 +69,8 @@ extern "C" void app_main(void) {
     // 5. Запуск задачі обробки анімацій (tick)
     xTaskCreate(garland_task, "garland_task", 4096, NULL, 5, NULL);
     
+    // 6. Ініціалізація MQTT
+    MqttManager::init();
+
     printf("Girlianda initialized successfully.\n");
 }
