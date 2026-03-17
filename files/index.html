@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32 Garland</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Керування гірляндою</h1>
+      <div class="modes" id="modesA">
+        <input type="hidden" id="modeA" value="0">
+        <button id="btnActionOff" class="btn" onclick="setBrightness(0)">Вимкнути</button>
+        <button id="btnMode0" class="btn active" onclick="setMode(0)">Постійне</button>
+        <button id="btnMode1" class="btn" onclick="setMode(1)">Почергове</button>
+        <button id="btnMode2" class="btn" onclick="setMode(2)">Дихання</button>
+        <button id="btnMode3" class="btn" onclick="setMode(3)">Хаос</button>
+        <button id="btnMode4" class="btn" onclick="setMode(4)">Свічка</button>
+      </div>
+      <div class="control-group">
+        <label>Швидкість анімації</label>
+        <div class="slider-container">
+          <input type="range" id="speedA" min="1" max="100" value="30" oninput="setSpeed(this.value)">
+          <span class="value-display" id="speedValueA">30</span>
+        </div>
+      </div>
+      <div class="control-group">
+        <label>Яскравість</label>
+        <div class="slider-container">
+          <input type="range" id="brightnessA" min="0" max="255" value="255" oninput="setBrightness(this.value)">
+          <span class="value-display" id="brightnessValue">255</span>
+        </div>
+      </div>
+
+    </div>
+    
+    <script src="scripts.js"></script>
+</body>
+</html>

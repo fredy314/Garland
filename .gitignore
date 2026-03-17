@@ -1,0 +1,23 @@
+# ESP-IDF
+build/
+
+# Configuration
+sdkconfig
+sdkconfig.old
+dependencies.lock
+
+# IDE specific
+.vscode/
+.idea/
+.vscode-server/
+cmake-build-*/
+*.su
+*.user
+.bash_history
+.bashrc
+.zsh_history
+.zshrc
+.DS_Store
+
+# Component folders
+managed_components/

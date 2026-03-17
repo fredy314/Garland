@@ -1,0 +1,86 @@
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f0f2f5;
+    color: #333;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+}
+
+.container {
+    background-color: #fff;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    max-width: 600px; /* Збільшив ширину, щоб всі кнопки влізли */
+    width: 90%;
+}
+
+h1 {
+    color: #007bff;
+    margin-bottom: 0.5rem;
+}
+
+.btn {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    margin: 5px;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    white-space: nowrap; /* Щоб текст у кнопці не переносився */
+}
+
+.btn:hover {
+    background-color: #0056b3;
+}
+
+.btn.active {
+    background-color: #28a745; /* Зелений колір для активного стану */
+    box-shadow: 0 0 8px rgba(40, 167, 69, 0.6);
+}
+
+.modes {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap; /* Кнопки перенесуться лише якщо зовсім не вистачить місця */
+    gap: 5px;
+    margin-bottom: 2rem;
+    margin-top: 1rem;
+}
+
+.control-group {
+    margin-bottom: 1.5rem;
+    text-align: left;
+}
+
+.control-group label {
+    font-weight: bold;
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #555;
+}
+
+.slider-container {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+input[type="range"] {
+    flex-grow: 1;
+    cursor: pointer;
+}
+
+.value-display {
+    font-weight: bold;
+    color: #007bff;
+    min-width: 40px;
+    text-align: right;
+}
