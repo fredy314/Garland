@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OTA Оновлення (Garland)</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .ota-container {
+            margin-top: 20px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            text-align: center;
+        }
+        .progress-container {
+            margin-top: 20px;
+            display: none;
+        }
+        .progress-bar {
+            width: 100%;
+            background-color: #f3f3f3;
+            border-radius: 13px;
+            padding: 3px;
+        }
+        .progress-fill {
+            height: 20px;
+            width: 0%;
+            background-color: #4caf50;
+            border-radius: 10px;
+            text-align: center;
+            line-height: 20px;
+            color: white;
+        }
+        select {
+            padding: 8px;
+            border-radius: 4px;
+            background: #333;
+            color: white;
+            border: 1px solid #555;
+            margin-bottom: 15px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="ota-container">
+            <div style="margin-bottom: 20px; font-size: 0.9em; opacity: 0.8;">
+                Поточний проект: <span id="cur-project">...</span><br>
+                Поточна версія: <span id="cur-version">...</span>
+            </div>
+            <div id="upload-form">
+                <label for="update_type">Що оновлюємо?</label>
+                <select id="update_type">
+                    <option value="app">Прошивка (Firmware)</option>
+                    <option value="spiffs">Файли (SPIFFS / storage.bin)</option>
+                </select>
+                
+                <input type="file" id="file_input" accept=".bin" required>
+                
+                <div id="downgrade-options" style="margin-top: 10px; font-size: 0.9em; text-align: left;">
+                    <label style="display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                        <input type="checkbox" id="allow_downgrade" style="width: auto; margin-right: 10px; margin-bottom: 0;">
+                        Дозволити старішу версію
+                    </label>
+                </div>
+
+                <div style="margin-top: 15px;">
+                    <button type="button" class="btn" onclick="startUpdate()">Завантажити та оновити</button>
+                </div>
+            </div>
+
+            <div id="progress-container" class="progress-container">
+                <p id="status-text">Завантаження...</p>
+                <div class="progress-bar">
+                    <div id="progress-fill" class="progress-fill">0%</div>
+                </div>
+            </div>
+        </div>
+        <div style="margin-top: 20px; text-align: center;">
+            <a href="/" style="color: #fff; text-decoration: underline;">Повернутися до керування</a>
+        </div>
+    </div>
+
+    <script>
+        // Завантаження поточної версії при старті
+        fetch('/status')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('cur-project').innerText = data.project || 'Невідомо';
+                document.getElementById('cur-version').innerText = data.version || 'Невідомо';
+            })
+            .catch(err => console.error('Помилка завантаження статусу:', err));
+
+        function startUpdate() {
+            const fileInput = document.getElementById('file_input');
+            const typeSelect = document.getElementById('update_type');
+            const allowDowngrade = document.getElementById('allow_downgrade').checked;
+            
+            if (fileInput.files.length === 0) {
+                alert("Будь ласка, виберіть файл!");
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const type = typeSelect.value;
+
+            document.getElementById('upload-form').style.display = 'none';
+            document.getElementById('progress-container').style.display = 'block';
+
+            const xhr = new XMLHttpRequest();
+            let url = "/ota.html?type=" + type;
+            if (allowDowngrade) url += "&force=1";
+            
+            xhr.open("POST", url, true);
+            xhr.setRequestHeader("Content-Type", "application/octet-stream");
+
+            xhr.upload.onprogress = function(e) {
+                if (e.lengthComputable) {
+                    const percentComplete = (e.loaded / e.total) * 100;
+                    const fill = document.getElementById('progress-fill');
+                    fill.style.width = percentComplete + '%';
+                    fill.innerHTML = Math.round(percentComplete) + '%';
+                }
+            };
+
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    document.getElementById('status-text').innerHTML = "Успішно! Перезавантаження...";
+                    setTimeout(() => { window.location.href = "/"; }, 5000);
+                } else {
+                    document.getElementById('status-text').innerHTML = "Помилка оновлення: " + xhr.responseText;
+                    setTimeout(() => { location.reload(); }, 5000);
+                }
+            };
+
+            xhr.onerror = function() {
+                alert("Сталася помилка при завантаженні.");
+                location.reload();
+            };
+
+            xhr.send(file);
+        }
+    </script>
+</body>
+</html>

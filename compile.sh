@@ -13,6 +13,7 @@ docker run -it --rm \
     -v /etc/passwd:/etc/passwd:ro \
     -v /etc/group:/etc/group:ro \
     -v "$PWD":/project \
+    -v "$HOME/.cache":"$HOME/.cache" \
     -v "$HOME/.espressif_ccache":/.ccache \
     -e CCACHE_DIR=/.ccache \
     -w /project \

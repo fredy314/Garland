@@ -9,6 +9,8 @@
 
 #include "esp_err.h"
 #include "esp_http_server.h"
+#include "esp_ota_ops.h"
+#include "esp_partition.h"
 
 class WebServerManager {
 public:
@@ -20,6 +22,7 @@ public:
 
     // Зупинити веб-сервер
     static void stop_server();
+    static int compare_versions(const char* new_ver, const char* old_ver);
 
 private:
     static httpd_handle_t server;
@@ -30,9 +33,13 @@ private:
     static esp_err_t brightness_get_handler(httpd_req_t *req);
     static esp_err_t nightmode_toggle_get_handler(httpd_req_t *req);
     static esp_err_t status_get_handler(httpd_req_t *req);
+    static esp_err_t ota_post_handler(httpd_req_t *req);
 
     // Універсальний обробник GET-запитів до статичних файлів
     static esp_err_t common_get_handler(httpd_req_t *req);
+    
+    // Перевірка Basic Auth для сторінки OTA
+    static bool is_authenticated(httpd_req_t *req);
 
     // Допоміжна функція визначення Content-Type за розширенням
     static const char* get_content_type(const char* filename);
