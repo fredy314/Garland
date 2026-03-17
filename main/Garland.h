@@ -38,6 +38,9 @@ public:
     void setBrightness(int brightness, bool save = true); // Для режиму постійного світіння
     int getBrightness() const;
 
+    void setNightModeOnly(bool enable, bool save = true);
+    bool getNightModeOnly() const;
+
 private:
     int _pinA1;
     int _pinA2;
@@ -47,6 +50,7 @@ private:
     int _mode;
     int _speed;
     int _manualBrightness; // Яскравість для режиму CONSTANT
+    bool _nightModeOnly;   // Чи світитись тільки вночі
     const char* _prefsNamespace;
 
     // Змінні для анімації

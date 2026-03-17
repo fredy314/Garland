@@ -28,6 +28,7 @@ private:
     static esp_err_t mode_get_handler(httpd_req_t *req);
     static esp_err_t speed_get_handler(httpd_req_t *req);
     static esp_err_t brightness_get_handler(httpd_req_t *req);
+    static esp_err_t nightmode_toggle_get_handler(httpd_req_t *req);
     static esp_err_t status_get_handler(httpd_req_t *req);
 
     // Універсальний обробник GET-запитів до статичних файлів

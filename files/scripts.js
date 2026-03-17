@@ -48,6 +48,11 @@ function setSpeed(value) {
     sendCommand('speed', value);
 }
 
+function setNightMode(checked) {
+    const value = checked ? 1 : 0;
+    sendCommand('nightmode_toggle', value);
+}
+
 function getStatus() {
     fetch('/status')
         .then(response => {
@@ -80,6 +85,14 @@ function getStatus() {
                 }
                 if (sVal && sVal.innerText !== String(data.speed)) {
                     sVal.innerText = data.speed;
+                }
+            }
+
+            // Оновлюємо NightModeOnly
+            if (data.nightModeOnly !== undefined) {
+                const nmCb = document.getElementById('nightModeOnly');
+                if (nmCb && nmCb.checked !== (data.nightModeOnly === 1)) {
+                    nmCb.checked = (data.nightModeOnly === 1);
                 }
             }
 

@@ -11,6 +11,7 @@
 #include "Garland.h"
 #include "WifiManager.h"
 #include "WebServerManager.h"
+#include "SunTimeManager.h"
 
 // Приклад пінів, можна змінити за потребою
 // Гірлянда до курника - 10, 7, 6, 5 - Підключена насправді тільки одна
@@ -56,6 +57,9 @@ extern "C" void app_main(void) {
     // Поки що захардкоджені значення для прикладу, зміни на свої "HomeF", "21122112"
     WifiManager::init(SSID, PASSWORD);
     WifiManager::setHostName(HOSTNAME);
+
+    // Ініціалізація NTP
+    SunTimeManager::init();
 
     // 4. Ініціалізація SPIFFS та ВебСервера
     WebServerManager::init_spiffs();

@@ -8,6 +8,10 @@
 #include <cmath>
 #include <algorithm>
 #include "esp_timer.h"
+#include "esp_log.h"
+#include <string.h>
+#include <math.h>
+#include "SunTimeManager.h"
 
 // Функція-замінник для millis() з Arduino
 static uint32_t millis() {
@@ -22,8 +26,8 @@ static uint32_t random_val(uint32_t min, uint32_t max) {
 
 Garland::Garland(int pinA1, int pinA2, int channel0, int channel1, int timerNum, const char* prefsNamespace) 
     : _pinA1(pinA1), _pinA2(pinA2), _channel0(channel0), _channel1(channel1), _timerNum(timerNum),
-      _mode(MODE_CONSTANT), _speed(30), 
-      _manualBrightness(255), _prefsNamespace(prefsNamespace),
+      _mode(MODE_CONSTANT), _speed(50), 
+      _manualBrightness(255), _nightModeOnly(false), _prefsNamespace(prefsNamespace),
       _phase(0.0f), _driveMode(0), _lastUpdate(0),
       _chaosValue(0.0f), _chaosTarget(0.0f), _chaosTime(0) {
 }
@@ -35,7 +39,13 @@ void Garland::begin() {
         int32_t val;
         if (nvs_get_i32(my_handle, "mode", &val) == ESP_OK) _mode = val;
         if (nvs_get_i32(my_handle, "speed", &val) == ESP_OK) _speed = val;
-        if (nvs_get_i32(my_handle, "bright", &val) == ESP_OK) _manualBrightness = val;
+        err = nvs_get_i32(my_handle, "brightness", &val);
+        if (err == ESP_OK) _manualBrightness = val;
+        
+        uint8_t nightMode;
+        err = nvs_get_u8(my_handle, "night", &nightMode);
+        if (err == ESP_OK) _nightModeOnly = (nightMode == 1);
+
         nvs_close(my_handle);
     }
 
@@ -103,7 +113,7 @@ void Garland::setMode(int mode, bool save) {
     _lastUpdate = millis();
     
     // Встановлюємо початковий стан для нового режиму
-    if (_manualBrightness == 0) {
+    if (_manualBrightness == 0 || (_nightModeOnly && !SunTimeManager::isNight())) {
         _updateDuty(0.0f, 0); // Вимкнено
     } else if (_mode == MODE_CONSTANT) {
         // При перемиканні на режим Постійне встановлюємо збережену яскравість
@@ -132,11 +142,19 @@ int Garland::getSpeed() const {
 }
 
 void Garland::setBrightness(int brightness, bool save) {
-    _manualBrightness = std::clamp(brightness, 0, 255);
+    if (brightness < 0) brightness = 0;
+    if (brightness > 255) brightness = 255;
+    
+    // Якщо встановлюємо яскравість 0 - це означає вимкнути, то відразу гасимо
+    if (brightness == 0) {
+        _updateDuty(0.0, 0); // Зовсім вимикаємо канали
+    }
+    
+    _manualBrightness = brightness;
     if (save) {
         nvs_handle_t my_handle;
         if (nvs_open(_prefsNamespace, NVS_READWRITE, &my_handle) == ESP_OK) {
-            nvs_set_i32(my_handle, "bright", _manualBrightness);
+            nvs_set_i32(my_handle, "brightness", _manualBrightness);
             nvs_commit(my_handle);
             nvs_close(my_handle);
         }
@@ -144,7 +162,7 @@ void Garland::setBrightness(int brightness, bool save) {
     
     // Якщо в режимі постійного світіння, оновлюємо відразу
     if (_mode == MODE_CONSTANT) {
-        if (_manualBrightness > 0) {
+        if (_manualBrightness > 0 && !(_nightModeOnly && !SunTimeManager::isNight())) {
             _updateDuty(_manualBrightness / 255.0f, 3);
         } else {
             _updateDuty(0.0f, 0);
@@ -154,6 +172,31 @@ void Garland::setBrightness(int brightness, bool save) {
 
 int Garland::getBrightness() const {
     return _manualBrightness;
+}
+
+void Garland::setNightModeOnly(bool enable, bool save) {
+    _nightModeOnly = enable;
+    if (save) {
+        nvs_handle_t my_handle;
+        if (nvs_open(_prefsNamespace, NVS_READWRITE, &my_handle) == ESP_OK) {
+            nvs_set_u8(my_handle, "night", _nightModeOnly ? 1 : 0);
+            nvs_commit(my_handle);
+            nvs_close(my_handle);
+        }
+    }
+    
+    // Якщо треба відразу оновити стан
+    if (!enable && _mode == MODE_CONSTANT && _manualBrightness > 0) {
+        // Увімкнули денний режим і гірлянда має світитися
+        _updateDuty(_manualBrightness / 255.0f, 3);
+    } else if (enable && !SunTimeManager::isNight()) {
+        // Увімкнули нічний режим, а зараз день - треба вимкнути
+        _updateDuty(0.0f, 0);
+    }
+}
+
+bool Garland::getNightModeOnly() const {
+    return _nightModeOnly;
 }
 
 void Garland::_updateDuty(float level, int driveMode) {
@@ -186,8 +229,8 @@ void Garland::_updateDuty(float level, int driveMode) {
 }
 
 void Garland::tick() {
-    // Якщо яскравість 0, нічого не робимо
-    if (_manualBrightness == 0) {
+    // Якщо яскравість 0 або світити тільки вночі (а зараз день), нічого не робимо
+    if (_manualBrightness == 0 || (_nightModeOnly && !SunTimeManager::isNight())) {
         if (_driveMode != 0) {
             _updateDuty(0.0f, 0);
         }

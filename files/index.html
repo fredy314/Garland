@@ -31,6 +31,11 @@
           <input type="range" id="brightnessA" min="0" max="255" value="255" oninput="setBrightness(this.value)">
           <span class="value-display" id="brightnessValue">255</span>
         </div>
+      <div class="control-group">
+        <label>
+          <input type="checkbox" id="nightModeOnly" onchange="setNightMode(this.checked)">
+          Світитись тільки вночі
+        </label>
       </div>
 
     </div>

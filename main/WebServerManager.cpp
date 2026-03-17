@@ -151,6 +151,14 @@ esp_err_t WebServerManager::start_server() {
         };
         httpd_register_uri_handler(server, &brightness_uri);
 
+        httpd_uri_t nightmode_uri = {
+            .uri       = "/nightmode_toggle",
+            .method    = HTTP_GET,
+            .handler   = nightmode_toggle_get_handler,
+            .user_ctx  = NULL
+        };
+        httpd_register_uri_handler(server, &nightmode_uri);
+
         httpd_uri_t status_uri = {
             .uri       = "/status",
             .method    = HTTP_GET,
@@ -230,11 +238,24 @@ esp_err_t WebServerManager::brightness_get_handler(httpd_req_t *req) {
     return ESP_FAIL;
 }
 
+esp_err_t WebServerManager::nightmode_toggle_get_handler(httpd_req_t *req) {
+    int val = 0;
+    if (extract_val_param(req, &val) == ESP_OK) {
+        garlandA.setNightModeOnly(val == 1, true);
+        ESP_LOGI(TAG, "Set Night Mode Only: %d", val);
+        httpd_resp_sendstr(req, "OK");
+        return ESP_OK;
+    }
+    httpd_resp_send_404(req);
+    return ESP_FAIL;
+}
+
 esp_err_t WebServerManager::status_get_handler(httpd_req_t *req) {
-    char response[128];
+    char response[200];
     snprintf(response, sizeof(response), 
-             "{\"mode\":%d,\"speed\":%d,\"brightness\":%d}", 
-             garlandA.getMode(), garlandA.getSpeed(), garlandA.getBrightness());
+             "{\"mode\":%d,\"speed\":%d,\"brightness\":%d,\"nightModeOnly\":%d}", 
+             garlandA.getMode(), garlandA.getSpeed(), garlandA.getBrightness(),
+             garlandA.getNightModeOnly() ? 1 : 0);
     
     httpd_resp_set_type(req, "application/json");
     httpd_resp_sendstr(req, response);
