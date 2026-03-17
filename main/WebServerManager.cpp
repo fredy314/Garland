@@ -15,6 +15,7 @@
 #include "esp_ota_ops.h"
 #include "esp_app_format.h"
 #include "esp_log.h"
+#include "mbedtls/base64.h"
 #include "esp_timer.h"
 #include "Garland.h"
 
@@ -298,14 +299,26 @@ int WebServerManager::compare_versions(const char* new_ver, const char* old_ver)
 
 bool WebServerManager::is_authenticated(httpd_req_t *req) {
     char buf[128];
-    // admin:31415926 в base64 -> YWRtaW46MzE0MTU5MjY=
-    const char* expected_auth = "Basic YWRtaW46MzE0MTU5MjY=";
     
     if (httpd_req_get_hdr_value_str(req, "Authorization", buf, sizeof(buf)) == ESP_OK) {
-        if (strncmp(expected_auth, buf, strlen(expected_auth)) == 0) {
-            return true;
+        if (strncmp(buf, "Basic ", 6) == 0) {
+            unsigned char decoded[128];
+            size_t decoded_len = 0;
+            // Декодуємо Base64 частину заголовка
+            if (mbedtls_base64_decode(decoded, sizeof(decoded), &decoded_len, (const unsigned char*)buf + 6, strlen(buf + 6)) == 0) {
+                char expected[128];
+                snprintf(expected, sizeof(expected), "%s:%s", OTA_USER, OTA_PASS);
+                // Порівнюємо розкодовані дані з очікуваним "user:pass"
+                if (decoded_len == strlen(expected) && memcmp(decoded, expected, decoded_len) == 0) {
+                    return true;
+                }
+            }
         }
     }
+    
+    httpd_resp_set_status(req, "401 Unauthorized");
+    httpd_resp_set_hdr(req, "WWW-Authenticate", "Basic realm=\"Garland OTA\"");
+    httpd_resp_send(req, NULL, 0);
     return false;
 }
 

@@ -24,6 +24,9 @@ public:
     static void stop_server();
     static int compare_versions(const char* new_ver, const char* old_ver);
 
+    static constexpr const char* OTA_USER = "admin";
+    static constexpr const char* OTA_PASS = "31415926";
+
 private:
     static httpd_handle_t server;
 
