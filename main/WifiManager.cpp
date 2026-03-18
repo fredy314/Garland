@@ -61,13 +61,21 @@ void WifiManager::init(const char* ssid, const char* password) {
     st_password = password;
     st_retry_num = 0;
     st_is_ap_mode = false;
-
+    // встановити максимальну потужність
+    esp_wifi_set_max_tx_power(78); // 78 = 19.5 dBm
     init_core();
     start_station();
 }
 
 void WifiManager::setHostName(const char* hostname) {
-    esp_netif_set_hostname(s_sta_netif, hostname);
+    // Отримуємо MAC-адресу для унікальності
+    uint8_t mac[6];
+    esp_read_mac(mac, ESP_MAC_WIFI_STA);
+    char suffix[7];
+    snprintf(suffix, sizeof(suffix), "%02X%02X%02X", mac[3], mac[4], mac[5]);
+    char full_hostname[64];
+    snprintf(full_hostname, sizeof(full_hostname), "%s-%s", hostname, suffix);
+    esp_netif_set_hostname(s_sta_netif, full_hostname);
 }
 
 void WifiManager::start_station() {
@@ -136,6 +144,7 @@ void WifiManager::wifi_event_handler(void* arg, esp_event_base_t event_base, int
     if (event_id == WIFI_EVENT_STA_START) {
         ESP_LOGI(TAG, "WiFi started. Waiting 2s before first connect...");
         st_is_waiting_for_retry = true;
+        esp_wifi_set_max_tx_power(78);
         xTimerChangePeriod(s_wifi_retry_timer, pdMS_TO_TICKS(2000), 0);
         xTimerStart(s_wifi_retry_timer, 0);
     } else if (event_id == WIFI_EVENT_STA_DISCONNECTED) {
@@ -150,6 +159,7 @@ void WifiManager::wifi_event_handler(void* arg, esp_event_base_t event_base, int
                 ESP_LOGI(TAG, "Max retries reached. Waiting 5s before switching to SoftAP...");
                 vTaskDelay(pdMS_TO_TICKS(5000));
                 st_is_connecting = false;
+                esp_wifi_set_max_tx_power(60);
                 esp_wifi_stop();
                 start_softap();
             }
@@ -171,7 +181,6 @@ void WifiManager::ip_event_handler(void* arg, esp_event_base_t event_base, int32
         st_retry_num = 0;
         st_is_connected = true;
         st_is_connecting = false;
-        
         if (s_ap_retry_timer != NULL && xTimerIsTimerActive(s_ap_retry_timer)) {
             xTimerStop(s_ap_retry_timer, 0); // Зупиняємо таймер резервного підключення
         }
@@ -196,6 +205,8 @@ void WifiManager::wifi_retry_timer_callback(TimerHandle_t xTimer) {
     if (!st_is_connected && !st_is_ap_mode) {
         ESP_LOGI(TAG, "Retry timer expired. Connecting...");
         st_retry_num++;
+        // встановити максимальну потужність зменшену на 2дб на ітерацію
+        esp_wifi_set_max_tx_power(78 - (st_retry_num * 2));
         esp_wifi_connect();
     }
 }
