@@ -21,6 +21,13 @@ void SunTimeManager::setTimeSynced(bool synced) {
     s_time_synced = synced;
 }
 
+void SunTimeManager::setTime(time_t t) {
+    struct timeval tv = {.tv_sec = t, .tv_usec = 0};
+    settimeofday(&tv, NULL);
+    s_time_synced = true;
+    ESP_LOGI("SunTimeManager", "Time set via ESP-NOW: %lld %s", (long long)t, ctime(&t));
+}
+
 // Callback, який викликається, коли час синхронізовано
 void time_sync_notification_cb(struct timeval *tv) {
     ESP_LOGI(TAG, "Time synced via SNTP!");

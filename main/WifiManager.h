@@ -15,12 +15,24 @@ class WifiManager {
 public:
     static void init(const char* ssid, const char* password);
     static void setHostName(const char* hostname);
+    static bool isConnected() { return st_is_connected; }
+    static bool isConnecting() { return st_is_connecting; }
+    static bool isWaitingForRetry() { return st_is_waiting_for_retry; }
+    
+    static void pauseRetryTimer();
+    static void resumeRetryTimer();
     
 private:
     static const char* st_ssid;
     static const char* st_password;
     static int st_retry_num;
     static bool st_is_ap_mode;
+    static bool st_is_connected;
+    static bool st_is_connecting;
+    static bool st_is_waiting_for_retry;
+    
+    static TimerHandle_t s_ap_retry_timer;
+    static TimerHandle_t s_wifi_retry_timer;
     
     // Ініціалізація NVS, netif, event loop (один раз)
     static void init_core();
@@ -37,4 +49,5 @@ private:
 
     // Таймер для періодичних спроб підключення в режимі AP
     static void ap_timer_callback(TimerHandle_t xTimer);
+    static void wifi_retry_timer_callback(TimerHandle_t xTimer);
 };

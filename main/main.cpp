@@ -13,12 +13,13 @@
 #include "WebServerManager.h"
 #include "SunTimeManager.h"
 #include "MqttManager.h"
+#include "EspNowTimeSync.h"
 
 // Приклад пінів, можна змінити за потребою
 // Гірлянда до курника - 10, 7, 6, 5 - Підключена насправді тільки одна
 // Гірлянди інші       - 0, 1, 3, 4
-#define PIN_A1 10
-#define PIN_A2 7
+#define PIN_A1 0
+#define PIN_A2 1
 // #define PIN_B1 6
 // #define PIN_B2 5
 
@@ -71,6 +72,9 @@ extern "C" void app_main(void) {
     
     // 6. Ініціалізація MQTT
     MqttManager::init();
+
+    // 7. Ініціалізація синхронізації часу через ESP-NOW
+    EspNowTimeSync::init();
 
     printf("Girlianda initialized successfully.\n");
 }

@@ -24,6 +24,7 @@ public:
     static void getTimeString(char* buf, size_t buf_size);
 
     static void setTimeSynced(bool synced);
+    static void setTime(time_t t);
 
 private:
     static bool s_time_synced;

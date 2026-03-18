@@ -26,7 +26,11 @@ const char* WifiManager::st_ssid = "";
 const char* WifiManager::st_password = "";
 int WifiManager::st_retry_num = 0;
 bool WifiManager::st_is_ap_mode = false;
-static TimerHandle_t s_ap_retry_timer = NULL;
+bool WifiManager::st_is_connected = false;
+bool WifiManager::st_is_connecting = false;
+bool WifiManager::st_is_waiting_for_retry = false;
+TimerHandle_t WifiManager::s_ap_retry_timer = NULL;
+TimerHandle_t WifiManager::s_wifi_retry_timer = NULL;
 static esp_netif_t* s_sta_netif = NULL;
 static esp_netif_t* s_ap_netif = NULL;
 static bool s_core_initialized = false;
@@ -47,6 +51,7 @@ void WifiManager::init_core() {
     ESP_ERROR_CHECK(esp_event_handler_instance_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &ip_event_handler, NULL, NULL));
 
     s_ap_retry_timer = xTimerCreate("ap_retry_timer", pdMS_TO_TICKS(AP_RETRY_INTERVAL_MS), pdFALSE, (void*)0, &ap_timer_callback);
+    s_wifi_retry_timer = xTimerCreate("wifi_retry_timer", pdMS_TO_TICKS(10000), pdFALSE, (void*)0, &wifi_retry_timer_callback);
 
     s_core_initialized = true;
 }
@@ -68,6 +73,7 @@ void WifiManager::setHostName(const char* hostname) {
 void WifiManager::start_station() {
     ESP_LOGI(TAG, "Starting Station mode. connecting to %s...", st_ssid);
     st_is_ap_mode = false;
+    st_is_connecting = true;
 
     wifi_config_t wifi_config = {};
     memset(&wifi_config, 0, sizeof(wifi_config_t));
@@ -128,15 +134,22 @@ void WifiManager::ap_timer_callback(TimerHandle_t xTimer) {
 
 void WifiManager::wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
     if (event_id == WIFI_EVENT_STA_START) {
-        esp_wifi_connect();
+        ESP_LOGI(TAG, "WiFi started. Waiting 2s before first connect...");
+        st_is_waiting_for_retry = true;
+        xTimerChangePeriod(s_wifi_retry_timer, pdMS_TO_TICKS(2000), 0);
+        xTimerStart(s_wifi_retry_timer, 0);
     } else if (event_id == WIFI_EVENT_STA_DISCONNECTED) {
+        st_is_connected = false;
         if (!st_is_ap_mode) {
             if (st_retry_num < MAX_RETRY) {
-                esp_wifi_connect();
-                st_retry_num++;
-                ESP_LOGI(TAG, "Retry to connect to the AP (%d/%d)", st_retry_num, MAX_RETRY);
+                ESP_LOGI(TAG, "Disconnected. Waiting 10s before retry %d/%d...", st_retry_num + 1, MAX_RETRY);
+                st_is_waiting_for_retry = true;
+                xTimerChangePeriod(s_wifi_retry_timer, pdMS_TO_TICKS(10000), 0);
+                xTimerStart(s_wifi_retry_timer, 0);
             } else {
-                ESP_LOGI(TAG, "Connect to the AP failed after %d retries. Switch to SoftAP.", MAX_RETRY);
+                ESP_LOGI(TAG, "Max retries reached. Waiting 5s before switching to SoftAP...");
+                vTaskDelay(pdMS_TO_TICKS(5000));
+                st_is_connecting = false;
                 esp_wifi_stop();
                 start_softap();
             }
@@ -156,9 +169,33 @@ void WifiManager::ip_event_handler(void* arg, esp_event_base_t event_base, int32
         ESP_LOGI(TAG, "got ip: " IPSTR, IP2STR(&event->ip_info.ip));
         printf("ip/ rjvgsk,dfnb yt gjnhs,yj z cfv\n"); // Твоє повідомлення
         st_retry_num = 0;
+        st_is_connected = true;
+        st_is_connecting = false;
         
         if (s_ap_retry_timer != NULL && xTimerIsTimerActive(s_ap_retry_timer)) {
             xTimerStop(s_ap_retry_timer, 0); // Зупиняємо таймер резервного підключення
         }
+    }
+}
+
+void WifiManager::pauseRetryTimer() {
+    if (s_ap_retry_timer != nullptr && xTimerIsTimerActive(s_ap_retry_timer)) {
+        xTimerStop(s_ap_retry_timer, 0);
+        ESP_LOGI(TAG, "Retry timer paused.");
+    }
+}
+
+void WifiManager::resumeRetryTimer() {
+    if (s_ap_retry_timer != nullptr && st_is_ap_mode) {
+        xTimerStart(s_ap_retry_timer, 0);
+        ESP_LOGI(TAG, "Retry timer resumed.");
+    }
+}
+void WifiManager::wifi_retry_timer_callback(TimerHandle_t xTimer) {
+    st_is_waiting_for_retry = false;
+    if (!st_is_connected && !st_is_ap_mode) {
+        ESP_LOGI(TAG, "Retry timer expired. Connecting...");
+        st_retry_num++;
+        esp_wifi_connect();
     }
 }
