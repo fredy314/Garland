@@ -84,3 +84,27 @@ input[type="range"] {
     min-width: 40px;
     text-align: right;
 }
+
+.sun-times-container {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 5px;
+}
+
+.footer {
+    margin-top: 40px;
+    text-align: center;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+    padding-top: 15px;
+}
+
+.footer-link {
+    color: #666;
+    text-decoration: none;
+    font-size: 0.9em;
+}
+
+.footer-link:hover {
+    text-decoration: underline;
+    color: #007bff;
+}

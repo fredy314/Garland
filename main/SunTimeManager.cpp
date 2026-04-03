@@ -16,9 +16,14 @@
 static const char *TAG = "SunTimeManager";
 
 bool SunTimeManager::s_time_synced = false;
+int SunTimeManager::s_lastDay = -1;
 
 void SunTimeManager::setTimeSynced(bool synced) {
     s_time_synced = synced;
+}
+
+bool SunTimeManager::isTimeSynced() {
+    return s_time_synced;
 }
 
 void SunTimeManager::setTime(time_t t) {
@@ -104,12 +109,29 @@ bool SunTimeManager::isNight() {
     
     int sunriseMins, sunsetMins;
     // tm_yday починається з 0
-    calculateSunTimes(timeinfo.tm_yday + 1, sunriseMins, sunsetMins);
+    int dayOfYear = timeinfo.tm_yday + 1;
+    calculateSunTimes(dayOfYear, sunriseMins, sunsetMins);
     
+    // Логуємо розрахунок раз на добу
+    if (s_lastDay != dayOfYear) {
+        s_lastDay = dayOfYear;
+        ESP_LOGI(TAG, "Sun calculation for day %d: Sunrise %02d:%02d, Sunset %02d:%02d", 
+                 dayOfYear, sunriseMins / 60, sunriseMins % 60, sunsetMins / 60, sunsetMins % 60);
+    }
+
     // Якщо поточний час ДО сходу АБО ПІСЛЯ заходу - це ніч
     if (currentMinutes < sunriseMins || currentMinutes > sunsetMins) {
         return true;
     }
     
     return false;
+}
+
+void SunTimeManager::getSunTimes(int& sunriseMins, int& sunsetMins) {
+    time_t now;
+    struct tm timeinfo;
+    time(&now);
+    localtime_r(&now, &timeinfo);
+    
+    calculateSunTimes(timeinfo.tm_yday + 1, sunriseMins, sunsetMins);
 }

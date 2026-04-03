@@ -18,6 +18,7 @@
 #include "mbedtls/base64.h"
 #include "esp_timer.h"
 #include "Garland.h"
+#include "SunTimeManager.h"
 
 extern Garland garlandA; // Оголошуємо зовнішній об'єкт гірлянди
 
@@ -273,11 +274,25 @@ esp_err_t WebServerManager::nightmode_toggle_get_handler(httpd_req_t *req) {
 
 esp_err_t WebServerManager::status_get_handler(httpd_req_t *req) {
     const esp_app_desc_t *app_desc = esp_app_get_description();
-    char response[300];
+    
+    int sunriseMins, sunsetMins;
+    char sunriseStr[16] = "--:--";
+    char sunsetStr[16] = "--:--";
+    
+    if (SunTimeManager::isTimeSynced()) {
+        SunTimeManager::getSunTimes(sunriseMins, sunsetMins);
+        snprintf(sunriseStr, sizeof(sunriseStr), "%02d:%02d", sunriseMins / 60, sunriseMins % 60);
+        snprintf(sunsetStr, sizeof(sunsetStr), "%02d:%02d", sunsetMins / 60, sunsetMins % 60);
+    }
+    
+    char response[400];
     snprintf(response, sizeof(response), 
-             "{\"mode\":%d,\"speed\":%d,\"brightness\":%d,\"nightModeOnly\":%d,\"version\":\"%s\",\"project\":\"%s\"}", 
+             "{\"mode\":%d,\"speed\":%d,\"brightness\":%d,\"nightModeOnly\":%d,"
+             "\"sunrise\":\"%s\",\"sunset\":\"%s\","
+             "\"version\":\"%s\",\"project\":\"%s\"}", 
              garlandA.getMode(), garlandA.getSpeed(), garlandA.getBrightness(),
              garlandA.getNightModeOnly() ? 1 : 0,
+             sunriseStr, sunsetStr,
              app_desc->version, app_desc->project_name);
     
     httpd_resp_set_type(req, "application/json");

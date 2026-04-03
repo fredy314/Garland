@@ -237,8 +237,15 @@ void Garland::tick() {
         return;
     }
     
-    // Для постійного режиму нічого не анімуємо
-    if (_mode == MODE_CONSTANT) return;
+    // Для постійного режиму перевіряємо, чи не час увімкнути
+    if (_mode == MODE_CONSTANT) {
+        if (_driveMode == 0 && _manualBrightness > 0) {
+            // Якщо зараз ніч (ми пройшли перевірку вище) і гірлянда вимкнена - вмикаємо її
+            ESP_LOGI("Garland", "Night mode: turning ON constant mode automatically");
+            _updateDuty(_manualBrightness / 255.0f, 3);
+        }
+        return;
+    }
 
     // Інтервал оновлення 20мс
     const uint32_t updateInterval = 20;

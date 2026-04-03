@@ -98,6 +98,10 @@ function getStatus() {
 
             // Оновлюємо активну кнопку
             updateActiveButton(data.mode, data.brightness);
+
+            // Оновлюємо час сходу та заходу
+            if (data.sunrise) document.getElementById('sunriseTime').innerText = data.sunrise;
+            if (data.sunset) document.getElementById('sunsetTime').innerText = data.sunset;
         })
         .catch(error => {
             console.error('Помилка отримання статусу:', error);

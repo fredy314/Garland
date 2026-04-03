@@ -20,14 +20,19 @@ public:
     // Перевірити чи зараз час після заходу сонця і до сходу (тобто ніч)
     static bool isNight();
 
+    // Отримати розрахований час сходу та заходу для поточного дня
+    static void getSunTimes(int& sunriseMins, int& sunsetMins);
+
     // Отримати поточний час у форматі "HH:MM:SS" (для логів)
     static void getTimeString(char* buf, size_t buf_size);
 
+    static bool isTimeSynced();
     static void setTimeSynced(bool synced);
     static void setTime(time_t t);
 
 private:
     static bool s_time_synced;
+    static int s_lastDay;
 
     // Внутрішня функція для розрахунку хвилин від опівночі для сходу/заходу сонця
     static void calculateSunTimes(int dayOfYear, int& sunriseMinutes, int& sunsetMinutes);
