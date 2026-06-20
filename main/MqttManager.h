@@ -30,6 +30,13 @@ private:
     static std::unique_ptr<HaEntityNumber> _ha_entity_speed;
     static nlohmann::json _json_this_device_doc;
 
+    static bool _lastPublishedIsOn;
+    static uint8_t _lastPublishedBrightness;
+    static int _lastPublishedMode;
+    static bool _lastPublishedNightModeOnly;
+    static int _lastPublishedSpeed;
+    static uint32_t _lastAllPublishTime;
+
     static const char* TAG;
 };
 

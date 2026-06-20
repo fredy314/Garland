@@ -27,7 +27,7 @@ static uint32_t random_val(uint32_t min, uint32_t max) {
 Garland::Garland(int pinA1, int pinA2, int channel0, int channel1, int timerNum, const char* prefsNamespace) 
     : _pinA1(pinA1), _pinA2(pinA2), _channel0(channel0), _channel1(channel1), _timerNum(timerNum),
       _mode(MODE_CONSTANT), _speed(50), 
-      _manualBrightness(255), _nightModeOnly(false), _prefsNamespace(prefsNamespace),
+      _manualBrightness(255), _nightModeOnly(true), _prefsNamespace(prefsNamespace),
       _phase(0.0f), _driveMode(0), _lastUpdate(0),
       _chaosValue(0.0f), _chaosTarget(0.0f), _chaosTime(0) {
 }
@@ -197,6 +197,10 @@ void Garland::setNightModeOnly(bool enable, bool save) {
 
 bool Garland::getNightModeOnly() const {
     return _nightModeOnly;
+}
+
+bool Garland::isLightActuallyOn() const {
+    return _manualBrightness > 0 && !(_nightModeOnly && !SunTimeManager::isNight());
 }
 
 void Garland::_updateDuty(float level, int driveMode) {

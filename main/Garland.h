@@ -40,6 +40,7 @@ public:
 
     void setNightModeOnly(bool enable, bool save = true);
     bool getNightModeOnly() const;
+    bool isLightActuallyOn() const;
 
 private:
     int _pinA1;

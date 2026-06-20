@@ -6,6 +6,7 @@
 #include <cstring>
 #include <new>
 #include "Garland.h"
+#include "SunTimeManager.h"
 
 extern Garland garlandA; // У main.cpp
 
@@ -15,6 +16,13 @@ std::unique_ptr<HaEntityLight> MqttManager::_ha_entity_light;
 std::unique_ptr<HaEntitySwitch> MqttManager::_ha_entity_switch;
 std::unique_ptr<HaEntityNumber> MqttManager::_ha_entity_speed;
 nlohmann::json MqttManager::_json_this_device_doc;
+
+bool MqttManager::_lastPublishedIsOn = false;
+uint8_t MqttManager::_lastPublishedBrightness = 0;
+int MqttManager::_lastPublishedMode = -1;
+bool MqttManager::_lastPublishedNightModeOnly = false;
+int MqttManager::_lastPublishedSpeed = -1;
+uint32_t MqttManager::_lastAllPublishTime = 0;
 
 const char* MqttManager::TAG = "MqttManager";
 
@@ -131,19 +139,83 @@ void MqttManager::publishAll() {
         _ha_entity_switch->publishConfiguration();
         _ha_entity_speed->publishConfiguration();
 
+        // Отримуємо поточні значення
+        bool currentIsOn = garlandA.isLightActuallyOn();
+        uint8_t currentBrightness = garlandA.getBrightness();
+        int currentMode = garlandA.getMode();
+        bool currentNightMode = garlandA.getNightModeOnly();
+        int currentSpeed = garlandA.getSpeed();
+
         // Публікуємо поточний стан
-        _ha_entity_light->publishIsOn(garlandA.getBrightness() > 0);
-        _ha_entity_light->publishBrightness(garlandA.getBrightness());
-        publishMode(garlandA.getMode());
-        publishNightModeOnly(garlandA.getNightModeOnly());
-        _ha_entity_speed->publishNumber(static_cast<float>(garlandA.getSpeed()));
+        _ha_entity_light->publishIsOn(currentIsOn);
+        _ha_entity_light->publishBrightness(currentBrightness);
+        publishMode(currentMode);
+        publishNightModeOnly(currentNightMode);
+        _ha_entity_speed->publishNumber(static_cast<float>(currentSpeed));
+
+        // Зберігаємо останній стан
+        _lastPublishedIsOn = currentIsOn;
+        _lastPublishedBrightness = currentBrightness;
+        _lastPublishedMode = currentMode;
+        _lastPublishedNightModeOnly = currentNightMode;
+        _lastPublishedSpeed = currentSpeed;
+        _lastAllPublishTime = xTaskGetTickCount() * portTICK_PERIOD_MS;
     }
 }
 
 void MqttManager::mqtt_task(void *pvParameters) {
+    // Даємо системі час ініціалізуватися та підключитися
+    vTaskDelay(pdMS_TO_TICKS(5000));
+    
+    MqttManager::publishAll();
+
     while (1) {
-        MqttManager::publishAll();
-        vTaskDelay(pdMS_TO_TICKS(60000)); // Затримка 60 секунд
+        if (_mqtt_remote && _mqtt_remote->connected()) {
+            bool currentIsOn = garlandA.isLightActuallyOn();
+            uint8_t currentBrightness = garlandA.getBrightness();
+            int currentMode = garlandA.getMode();
+            bool currentNightMode = garlandA.getNightModeOnly();
+            int currentSpeed = garlandA.getSpeed();
+
+            uint32_t now = xTaskGetTickCount() * portTICK_PERIOD_MS;
+            bool forcePublish = (now - _lastAllPublishTime >= 60000);
+
+            bool changed = false;
+
+            if (forcePublish || currentIsOn != _lastPublishedIsOn) {
+                _ha_entity_light->publishIsOn(currentIsOn);
+                _lastPublishedIsOn = currentIsOn;
+                changed = true;
+            }
+            if (forcePublish || currentBrightness != _lastPublishedBrightness) {
+                _ha_entity_light->publishBrightness(currentBrightness);
+                _lastPublishedBrightness = currentBrightness;
+                changed = true;
+            }
+            if (forcePublish || currentMode != _lastPublishedMode) {
+                publishMode(currentMode);
+                _lastPublishedMode = currentMode;
+                changed = true;
+            }
+            if (forcePublish || currentNightMode != _lastPublishedNightModeOnly) {
+                publishNightModeOnly(currentNightMode);
+                _lastPublishedNightModeOnly = currentNightMode;
+                changed = true;
+            }
+            if (forcePublish || currentSpeed != _lastPublishedSpeed) {
+                _ha_entity_speed->publishNumber(static_cast<float>(currentSpeed));
+                _lastPublishedSpeed = currentSpeed;
+                changed = true;
+            }
+
+            if (forcePublish) {
+                _ha_entity_light->publishConfiguration();
+                _ha_entity_switch->publishConfiguration();
+                _ha_entity_speed->publishConfiguration();
+                _lastAllPublishTime = now;
+            }
+        }
+        vTaskDelay(pdMS_TO_TICKS(1000)); // Перевірка щосекунди
     }
 }
 
