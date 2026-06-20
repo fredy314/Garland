@@ -52,6 +52,8 @@ private:
     int _speed;
     int _manualBrightness; // Яскравість для режиму CONSTANT
     bool _nightModeOnly;   // Чи світитись тільки вночі
+    int _overrideState;    // 0=немає, 1=перевизначено вдень, 2=перевизначено вночі
+    int _lastNonZeroBrightness; // Остання ненульова яскравість
     const char* _prefsNamespace;
 
     // Змінні для анімації
